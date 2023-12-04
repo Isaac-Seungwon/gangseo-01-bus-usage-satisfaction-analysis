@@ -1,0 +1,65 @@
+# 03.IPA 분석
+
+
+# 1.기본 package 설정
+
+# 1.1 library 로드
+library(tidyverse)
+library(tidymodels)
+library(rstatix)
+library(skimr)
+
+
+
+
+
+
+# 2.ipa용 데이터 만들기
+
+ipa_1 <- csi_total_tb %>% 
+  get_summary_stats(종합만족도, 전공교육, 교양교육,
+                    학습지원, 상담지원,
+                    show = c("mean")) %>%
+  select(variable, mean) %>%
+  filter(!(variable == "종합만족도")) %>%
+  rename(항목 = variable, 
+         만족도 = mean)
+
+ipa_2 <- cor_tb %>%
+  select(wgt) %>%
+  rename(중요도 = wgt)
+
+ipa_tb <- cbind(ipa_1, ipa_2)
+
+ipa_tb
+
+
+
+
+
+# 3.ipa 그래프 만들기
+
+ipa_tb %>%
+  ggplot(mapping = aes(x = 중요도,
+                       y = 만족도)) +
+  geom_point(shape=18, 
+             size=3, 
+             colour="red",
+             show.legend = FALSE) +
+  coord_cartesian(xlim = c(0.1, 0.4), 
+                  ylim = c(52.5, 72.5)) +
+  geom_text(mapping = aes(label = 항목, 
+                          size = 1, 
+                          vjust = 0, 
+                          hjust = 0),
+            show.legend = FALSE) +
+  geom_vline(xintercept = 0.25,
+             size = 0.5,
+             alpha = 0.5) +
+  geom_hline(yintercept = 62.5,
+             size = 0.5,
+             alpha = 0.5)
+
+
+
+

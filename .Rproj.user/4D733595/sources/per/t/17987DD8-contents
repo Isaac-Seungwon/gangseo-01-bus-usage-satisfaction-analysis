@@ -1,0 +1,108 @@
+# 01.만족도 지수 계산
+
+# 1.기본 package 설정
+library(tidyverse)
+library(tidymodels)
+library(rstatix)
+library(skimr)
+
+
+# 2.데이터 불러오기
+csi_tb <-read_csv("csi.csv",
+                  col_names = T,
+                  locale = locale("ko", encoding = "euc-kr"),
+                  na = ".") %>% 
+  mutate(학부 = factor(학부,
+                       levels = c(1:5),
+                       labels = c("신학", "사회복지", "아동상담",
+                                  "경영", "외국어")),
+         학년 = factor(학년,
+                        levels = c(1:4),
+                        labels = c("1학년", "2학년", "3학년", "4학년")),
+         성별 = factor(성별,
+                        levels = c(1:2),
+                        labels = c("남자", "여자")
+                       )
+         )
+str(csi_tb)
+csi_tb
+
+
+# %>%: 파이프라인 - 연결
+# transmute: transmute안에 있는 내용만 가지고 와 새로운 것만 계산
+# rowwise: '행단위 연산'일때 그룹화를 위해 사용
+# tibble: mutate계산시 list로 생성된 부분을 삭제
+
+# 3.100점 만점으로 변환
+csi_100_tb <- csi_tb %>%
+  rowwise() %>%
+  transmute(학부, 학년, 성별,
+            전공교육 = (mean(c(A1, A2, A3, A4, A5))-1)/6*100,
+            교양교육 = (mean(c(B1,B2,B3,B4,B5))-1)/6*100,
+            학습지원 = (mean(c(C1,C2,C3,C4,C5))-1)/6*100,
+            상담지원 = (mean(c(D1,D2,D3,D4,D5))-1)/6*100,
+            전반적만족도 = (mean(c(E1,E2,E3,E4,E5))-1)/6*100
+            )
+as_tibble()
+
+csi_100_tb
+str(csi_100_tb)
+
+# 방법2
+# csi_tb %>%
+#  select(A1:A5) %>%
+#  mutate(A1 = (A1-1)/6*100,
+#         A2 = (A2-1)/6*100,
+#         A3 = (A3-1)/6*100,
+#         A4 = (A4-1)/6*100,
+#         A5 = (A5-1)/6*100) %>%
+#  rowwise() %>%
+#  mutate(전공교육 = mean(c(A1,A2,A3,A4,A5)))
+
+
+# 4.상관계수 추출
+cor_tb <- csi_100_tb %>%
+  cor_test(var1 = 전반적만족도, # 기준점을 정해준다. 전반적 만족도가 기준이 된다.
+           method = "pearson") %>%
+  select(var2, cor) %>%
+  mutate(wgt = cor/sum(cor)) # 상관관계로 가중치 구하기 (모두 더하고 1/n해준다)
+
+cor_tb #wgt 가중치를 이용해서 종합만족도를 계산할 예정
+
+
+# mutate(종합만족도 = 전공교육 * 0.237 + 교양교육 * 0.247) 가중치를 코드로 작성
+
+# 5.종합만족도 계산
+csi_total_tb <- csi_100_tb %>%
+  select(학부:상담지원) %>%
+  rowwise() %>%
+  mutate(종합만족도 = 전공교육 * (cor_tb %>%
+                                    filter(var2 == "전공교육") %>%
+                                    select(wgt)) +
+                      교양교육 * (cor_tb %>%
+                                    filter(var2 == "교양교육") %>%
+                                    select(wgt)) +
+                      학습지원 * (cor_tb %>%
+                                    filter(var2 == "학습지원") %>%
+                                    select(wgt)) +
+                      상담지원 * (cor_tb %>%
+                                    filter(var2 == "상담지원") %>%
+                                    select(wgt))
+        )
+
+str(csi_total_tb)
+
+# 종합만족도 점수를 dbl로 처리
+csi_total_tb <- csi_total_tb %>%
+  unnest(종합만족도) %>%
+  rename(종합만족도 = wgt)
+str(csi_total_tb)
+
+# 방법2: 상관계수값으로 직접 계산
+# csi_100_tb %>%
+#  select(전공교육:상담지원) %>%
+#  mutate(종합만족도 = (전공교육 * 0.237) + 
+#                      (교양교육 * 0.242) +
+#                      (학습지원 * 0.292) + 
+#                      (상담지원 * 0.228)
+#        )

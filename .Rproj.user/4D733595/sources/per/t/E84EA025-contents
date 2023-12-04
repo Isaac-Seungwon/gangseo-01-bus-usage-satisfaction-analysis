@@ -1,0 +1,144 @@
+# 02.종합만족도 분석
+
+
+# 1.기본 package 설정
+
+# 1.1 library 로드
+library(tidyverse)
+library(tidymodels)
+library(rstatix)
+library(skimr)
+
+
+
+
+
+
+# 2.응답자 특성
+csi_total_tb %>% 
+  freq_table(학부) %>%
+  write_excel_csv("01_01.응답자_학부.xls",
+                  col_names = T)
+
+csi_total_tb %>% 
+  freq_table(학년) %>%
+  write_excel_csv("01_02.응답자_학년.xls",
+                  col_names = T)
+
+csi_total_tb %>% 
+  freq_table(성별) %>%
+  write_excel_csv("01_03.응답자_성별.xls",
+                  col_names = T)
+
+
+
+
+
+
+# 3.차원별 종합만족도 분석
+
+# 분석
+csi_total_tb %>% 
+  get_summary_stats(종합만족도, 전공교육, 교양교육,
+                    학습지원, 상담지원,
+                    show = c("mean")) %>%
+  select(variable, mean) %>%
+  write_excel_csv("02.차원별 종합만족도.xls",
+                  col_names = T)
+
+# 그래프 그리기
+csi_total_tb %>% 
+  get_summary_stats(종합만족도, 전공교육, 교양교육,
+                    학습지원, 상담지원,
+                    show = c("mean")) %>%
+  ggplot(mapping = aes(x = variable       ,
+                       y = mean)) +
+  geom_col(fill = "royalblue3") # x와 y 모두 지정해 주어야 함
+
+# 그래프 그리기2
+csi_total_tb %>% 
+  get_summary_stats(종합만족도, 전공교육, 교양교육,
+                    학습지원, 상담지원,
+                    show = c("mean")) %>%
+  ggplot(mapping = aes(x = variable,
+                       y = mean)) +
+  geom_bar(stat = "identity",  # 원데이터가 아니라 계산한 결과값으로 identity를 추가 
+           fill = "royalblue3")
+
+
+
+
+
+
+# 4.학부별 종합만족도 분석
+
+# 학부별 종합만족도
+csi_total_tb %>%
+  group_by(학부) %>%
+  get_summary_stats(종합만족도,
+                    show = c("mean")) %>%
+  select(학부, mean)  %>%
+  write_excel_csv("03_1.학부별 종합만족도.xls",
+                  col_names = T)
+
+# 학부 및 차원별 종합만족도
+csi_total_tb %>%
+  group_by(학부) %>%
+  get_summary_stats(show = c("mean")) %>%
+  select(학부, variable, mean) %>%
+  pivot_wider(names_from = 학부, 
+              values_from = mean) %>%
+  write_excel_csv("03_2.학부 및 차원별 종합만족도.xls",
+                  col_names = T)
+
+
+
+
+
+
+# 5.학년별 종합만족도 분석
+
+# 학년별 종합만족도
+csi_total_tb %>%
+  group_by(학년) %>%
+  get_summary_stats(종합만족도,
+                    show = c("mean")) %>%
+  select(학년, mean)  %>%
+  write_excel_csv("04_1.학년별 종합만족도.xls",
+                  col_names = T)
+
+# 학부 및 차원별 종합만족도
+csi_total_tb %>%
+  group_by(학년) %>%
+  get_summary_stats(show = c("mean")) %>%
+  select(학년, variable, mean) %>%
+  pivot_wider(names_from = 학년, 
+              values_from = mean) %>%
+  write_excel_csv("04_2.학년 및 차원별 종합만족도.xls",
+                  col_names = T)
+
+
+
+
+
+
+# 6.성별 종합만족도 분석
+
+# 성별 종합만족도
+csi_total_tb %>%
+  group_by(성별) %>%
+  get_summary_stats(종합만족도,
+                    show = c("mean")) %>%
+  select(성별, mean)  %>%
+  write_excel_csv("05_1.성별 종합만족도.xls",
+                  col_names = T)
+
+# 학부 및 차원별 종합만족도
+csi_total_tb %>%
+  group_by(성별) %>%
+  get_summary_stats(show = c("mean")) %>%
+  select(성별, variable, mean) %>%
+  pivot_wider(names_from = 성별, 
+              values_from = mean) %>%
+  write_excel_csv("05_2.성별 및 차원별 종합만족도.xls",
+                  col_names = T)
